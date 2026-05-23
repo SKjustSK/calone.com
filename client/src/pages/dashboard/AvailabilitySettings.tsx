@@ -57,7 +57,7 @@ export default function AvailabilitySettings() {
       api.get('/availability'),
       api.get('/user/me')
     ]).then(([availRes, userRes]) => {
-      const data = availRes.data;
+      const data = availRes.data.availability || [];
       if (userRes.data?.timezone) {
         setTimezone(userRes.data.timezone);
       }
@@ -128,17 +128,41 @@ export default function AvailabilitySettings() {
   const handleSave = async () => {
     try {
       const payload: { dayOfWeek: number, startTime: string, endTime: string }[] = [];
+      let hasError = false;
+
       Object.entries(schedule).forEach(([dayStr, data]) => {
         if (data.enabled) {
-          data.blocks.forEach(block => {
+          // Sort blocks by start time
+          const sortedBlocks = [...data.blocks].sort((a, b) => a.startTime.localeCompare(b.startTime));
+          
+          for (let i = 0; i < sortedBlocks.length; i++) {
+            const block = sortedBlocks[i];
+            
+            if (block.startTime >= block.endTime) {
+              toast.error(`Invalid time range on ${DAYS.find(d => d.value === Number(dayStr))?.label}: Start time must be before end time.`);
+              hasError = true;
+              return;
+            }
+
+            if (i > 0) {
+              const prevBlock = sortedBlocks[i - 1];
+              if (block.startTime < prevBlock.endTime) {
+                toast.error(`Overlapping time slots on ${DAYS.find(d => d.value === Number(dayStr))?.label}`);
+                hasError = true;
+                return;
+              }
+            }
+
             payload.push({
               dayOfWeek: Number(dayStr),
               startTime: block.startTime,
               endTime: block.endTime
             });
-          });
+          }
         }
       });
+
+      if (hasError) return;
 
       await Promise.all([
         api.post('/availability', { schedule: payload }),

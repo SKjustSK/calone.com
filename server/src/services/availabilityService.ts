@@ -6,8 +6,10 @@ import { Availability } from '@prisma/client';
  * @param userId The ID of the user
  * @returns A promise resolving to an array of Availability rules
  */
-export const getAvailability = async (userId: string): Promise<Availability[]> => {
-  return prisma.availability.findMany({ where: { userId } });
+export const getAvailability = async (userId: string) => {
+  const availability = await prisma.availability.findMany({ where: { userId } });
+  const dateOverrides = await prisma.dateOverride.findMany({ where: { userId } });
+  return { availability, dateOverrides };
 };
 
 /**

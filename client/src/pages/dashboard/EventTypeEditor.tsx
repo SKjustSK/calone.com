@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -24,26 +24,28 @@ export default function EventTypeEditor() {
   const [duration, setDuration] = useState(30);
   const [bufferTime, setBufferTime] = useState(0);
   const [description, setDescription] = useState('');
+  const [customQuestions, setCustomQuestions] = useState<{id: string, label: string, required: boolean, type: string}[]>([]);
   
   useEffect(() => {
     if (isEditing) {
-      api.get('/events').then(res => {
-        const ev = res.data.find((e: any) => e.id === id);
+      api.get(`/events/${id}`).then(res => {
+        const ev = res.data;
         if (ev) {
           setTitle(ev.title);
           setSlug(ev.slug);
           setDuration(ev.duration);
           setBufferTime(ev.bufferTime || 0);
           setDescription(ev.description || '');
+          setCustomQuestions(ev.customQuestions || []);
         }
-      });
+      }).catch(() => toast.error('Failed to load event type'));
     }
   }, [id, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = { title, slug, duration, bufferTime, description };
+      const payload = { title, slug, duration, bufferTime, description, customQuestions };
       if (isEditing) {
         await api.put(`/events/${id}`, payload);
         toast.success("Event type updated successfully");
@@ -136,6 +138,75 @@ export default function EventTypeEditor() {
             value={description} 
             onChange={e => setDescription(e.target.value)} 
           />
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>Custom Booking Questions</Label>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={() => setCustomQuestions([...customQuestions, { id: Date.now().toString(), label: '', required: false, type: 'text' }])}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Add Question
+            </Button>
+          </div>
+          {customQuestions.map((q, index) => (
+            <div key={q.id} className="flex gap-3 items-start border p-4 rounded-md">
+              <div className="flex-1 space-y-3">
+                <Input 
+                  placeholder="Question Label (e.g. Phone Number)"
+                  value={q.label}
+                  onChange={(e) => {
+                    const newQs = [...customQuestions];
+                    newQs[index].label = e.target.value;
+                    setCustomQuestions(newQs);
+                  }}
+                  required
+                />
+                <div className="flex items-center gap-4">
+                  <Select 
+                    value={q.type} 
+                    onValueChange={(v) => {
+                      const newQs = [...customQuestions];
+                      newQs[index].type = v;
+                      setCustomQuestions(newQs);
+                    }}
+                  >
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Input Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">Short Text</SelectItem>
+                      <SelectItem value="textarea">Long Text</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <input 
+                      type="checkbox" 
+                      checked={q.required}
+                      onChange={(e) => {
+                        const newQs = [...customQuestions];
+                        newQs[index].required = e.target.checked;
+                        setCustomQuestions(newQs);
+                      }}
+                      className="rounded border-border accent-foreground"
+                    />
+                    Required
+                  </label>
+                </div>
+              </div>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setCustomQuestions(customQuestions.filter(question => question.id !== q.id))}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ))}
         </div>
 
         <div className="flex gap-4">

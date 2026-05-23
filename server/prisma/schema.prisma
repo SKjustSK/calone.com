@@ -8,6 +8,12 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+}
+
 model User {
   id           String         @id @default(uuid())
   name         String
@@ -16,15 +22,28 @@ model User {
   timezone     String         @default("Asia/Calcutta")
   eventTypes   EventType[]
   availability Availability[]
+  dateOverrides DateOverride[]
+}
+
+model DateOverride {
+  id         String   @id @default(uuid())
+  date       DateTime // The specific date (e.g. 2026-12-25)
+  startTime  String   // e.g. "09:00"
+  endTime    String   // e.g. "17:00"
+  isDayOff   Boolean  @default(false)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model EventType {
   id          String    @id @default(uuid())
   title       String
   description String?
-  duration    Int       // in minutes
-  bufferTime  Int       @default(0) // in minutes
-  slug        String
+  duration        Int       // in minutes
+  bufferTime      Int       @default(0) // in minutes
+  customQuestions Json      @default("[]")
+  slug            String
+  isActive    Boolean   @default(true)
   isArchived  Boolean   @default(false)
   userId      String
   user        User      @relation(fields: [userId], references: [id])
@@ -47,8 +66,9 @@ model Booking {
   eventTypeId String
   eventType   EventType @relation(fields: [eventTypeId], references: [id])
   bookerName  String
-  bookerEmail String
-  startTime   DateTime
-  endTime     DateTime
-  status      String    @default("ACCEPTED") // CANCELLED, ACCEPTED
+  bookerEmail     String
+  startTime       DateTime
+  endTime         DateTime
+  status          BookingStatus @default(PENDING)
+  customResponses Json      @default("{}")
 }
