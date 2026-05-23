@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 
 export default function EventTypesList() {
   const [events, setEvents] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     api.get('/events').then(res => setEvents(res.data)).catch(err => console.error(err));
@@ -42,7 +43,13 @@ export default function EventTypesList() {
             <span className="absolute inset-y-0 left-0 flex items-center pl-3">
               <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </span>
-            <input type="text" placeholder="Search" className="pl-9 pr-4 py-2 border rounded-md text-sm bg-transparent w-48 focus:outline-none focus:ring-1 focus:ring-primary" />
+            <input 
+              type="text" 
+              placeholder="Search" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 border rounded-md text-sm bg-transparent w-48 focus:outline-none focus:ring-1 focus:ring-primary" 
+            />
           </div>
           <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
             <Link to="/dashboard/event-types/new">
@@ -54,8 +61,13 @@ export default function EventTypesList() {
 
       <Card className="overflow-hidden border-border bg-card">
         <div className="flex flex-col">
-          {events.map((event, idx) => (
-            <div key={event.id} className={`flex items-center justify-between p-5 ${idx !== events.length - 1 ? 'border-b border-border/50' : ''}`}>
+          {events
+            .filter(event => 
+              event.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+              event.slug.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map((event, idx, filteredArray) => (
+            <div key={event.id} className={`flex items-center justify-between p-5 ${idx !== filteredArray.length - 1 ? 'border-b border-border/50' : ''}`}>
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <h3 className="text-base font-semibold">{event.title}</h3>
