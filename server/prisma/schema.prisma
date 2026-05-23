@@ -12,6 +12,7 @@ model User {
   name         String
   email        String         @unique
   slug         String         @unique
+  timezone     String         @default("Asia/Calcutta")
   eventTypes   EventType[]
   availability Availability[]
 }
@@ -22,6 +23,7 @@ model EventType {
   description String?
   duration    Int       // in minutes
   slug        String
+  isArchived  Boolean   @default(false)
   userId      String
   user        User      @relation(fields: [userId], references: [id])
   bookings    Booking[]

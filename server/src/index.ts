@@ -5,6 +5,7 @@ import cors from 'cors';
 import eventRoutes from './routes/events';
 import availabilityRoutes from './routes/availability';
 import bookingRoutes from './routes/bookings';
+import userRoutes from './routes/userRoutes';
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+app.use('/api/user', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/bookings', bookingRoutes);
