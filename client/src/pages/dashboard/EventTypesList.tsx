@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Link as LinkIcon, Clock, MoreHorizontal, Copy, Pencil, Trash2 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Plus, Clock, MoreHorizontal, Copy, Pencil, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format, isPast, isFuture } from 'date-fns';
 import { toast } from 'sonner';
-import { Calendar, Clock, User, MoreHorizontal, Video } from 'lucide-react';
+import { Calendar, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
