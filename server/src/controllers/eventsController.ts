@@ -16,6 +16,22 @@ export const getAllEventTypes = async (req: Request, res: Response): Promise<voi
 };
 
 /**
+ * Retrieves a single event type by ID (for the editor page).
+ */
+export const getEventTypeById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const event = await eventsService.getEventById(req.params.id as string);
+    if (!event) {
+      res.status(404).json({ error: 'Event type not found' });
+      return;
+    }
+    res.json(event);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
  * Retrieves all event types for a public user profile.
  * @param req Express request object
  * @param res Express response object

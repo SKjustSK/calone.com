@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, BookingStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -7,6 +7,7 @@ async function main() {
 
   // Reset existing data (if any remains)
   await prisma.booking.deleteMany({});
+  await prisma.dateOverride.deleteMany({});
   await prisma.availability.deleteMany({});
   await prisma.eventType.deleteMany({});
   await prisma.user.deleteMany({});
@@ -26,32 +27,26 @@ async function main() {
   console.log('Created admin user:', admin.email);
 
   // 2. Create Event Types
-  const event15 = await prisma.eventType.create({
-    data: {
-      title: '15 Min Meeting',
-      description: 'A quick 15-minute catchup.',
-      duration: 15,
-      slug: '15min',
-      userId: admin.id
-    }
-  });
-
   const event30 = await prisma.eventType.create({
     data: {
-      title: '30 Min Discovery Call',
-      description: 'Discuss potential collaborations.',
+      title: '30 Min Meeting',
+      description: 'A 30-minute meeting.',
       duration: 30,
       slug: '30min',
       userId: admin.id
     }
   });
 
-  const event60 = await prisma.eventType.create({
+  const event30buffer = await prisma.eventType.create({
     data: {
-      title: '60 Min Deep Dive',
-      description: 'Detailed technical discussion.',
-      duration: 60,
-      slug: '60min',
+      title: '30 Min Meeting with 5 Min Buffer',
+      description: 'A 30-minute meeting. Please share your phone number so we can reach you.',
+      duration: 30,
+      bufferTime: 5,
+      slug: '30min-call',
+      customQuestions: [
+        { id: 'phone', label: 'Phone Number', required: true, type: 'text' }
+      ],
       userId: admin.id
     }
   });
@@ -101,49 +96,53 @@ async function main() {
     return d;
   };
 
-  const pastDate1 = getCleanDate(getPrevWorkingDay(now, 1), 10, 0); // 10:00 AM
-  const pastDate2 = getCleanDate(getPrevWorkingDay(now, 3), 14, 30); // 2:30 PM
-  const upcomingDate1 = getCleanDate(getNextWorkingDay(now, 1), 9, 15); // 9:15 AM
-  const upcomingDate2 = getCleanDate(getNextWorkingDay(now, 2), 15, 0); // 3:00 PM
-  const cancelledDate = getCleanDate(getNextWorkingDay(now, 3), 11, 30); // 11:30 AM
+  const pastDate1 = getCleanDate(getPrevWorkingDay(now, 1), 10, 0);  // 10:00 AM yesterday-ish
+  const pastDate2 = getCleanDate(getPrevWorkingDay(now, 3), 14, 30); // 2:30 PM a few days ago
+  const upcomingDate1 = getCleanDate(getNextWorkingDay(now, 1), 9, 30);  // 9:30 AM next working day
+  const upcomingDate2 = getCleanDate(getNextWorkingDay(now, 2), 14, 0);  // 2:00 PM two working days out
+  const cancelledDate = getCleanDate(getNextWorkingDay(now, 3), 11, 0);  // 11:00 AM three working days out
 
   // Past Bookings
   const pastBookings = [
     {
-      eventTypeId: event15.id,
+      eventTypeId: event30.id,
       bookerName: 'John Doe',
       bookerEmail: 'john@example.com',
       startTime: pastDate1,
-      endTime: new Date(pastDate1.getTime() + 15 * 60000),
-      status: 'ACCEPTED'
+      endTime: new Date(pastDate1.getTime() + 30 * 60000),
+      status: BookingStatus.ACCEPTED,
+      customResponses: {}
     },
     {
-      eventTypeId: event30.id,
+      eventTypeId: event30buffer.id,
       bookerName: 'Jane Smith',
       bookerEmail: 'jane@example.com',
       startTime: pastDate2,
       endTime: new Date(pastDate2.getTime() + 30 * 60000),
-      status: 'ACCEPTED'
+      status: BookingStatus.ACCEPTED,
+      customResponses: { phone: '+91 98765 43210' }
     }
   ];
 
   // Upcoming Bookings
   const upcomingBookings = [
     {
-      eventTypeId: event15.id,
+      eventTypeId: event30buffer.id,
       bookerName: 'Alice Johnson',
       bookerEmail: 'alice@example.com',
       startTime: upcomingDate1,
-      endTime: new Date(upcomingDate1.getTime() + 15 * 60000),
-      status: 'ACCEPTED'
+      endTime: new Date(upcomingDate1.getTime() + 30 * 60000),
+      status: BookingStatus.ACCEPTED,
+      customResponses: { phone: '+91 99887 76655' }
     },
     {
-      eventTypeId: event60.id,
+      eventTypeId: event30.id,
       bookerName: 'Bob Williams',
       bookerEmail: 'bob@example.com',
       startTime: upcomingDate2,
-      endTime: new Date(upcomingDate2.getTime() + 60 * 60000),
-      status: 'ACCEPTED'
+      endTime: new Date(upcomingDate2.getTime() + 30 * 60000),
+      status: BookingStatus.ACCEPTED,
+      customResponses: {}
     },
     {
       eventTypeId: event30.id,
@@ -151,7 +150,8 @@ async function main() {
       bookerEmail: 'charlie@example.com',
       startTime: cancelledDate,
       endTime: new Date(cancelledDate.getTime() + 30 * 60000),
-      status: 'CANCELLED'
+      status: BookingStatus.CANCELLED,
+      customResponses: {}
     }
   ];
 

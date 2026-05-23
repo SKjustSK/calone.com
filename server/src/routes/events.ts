@@ -5,6 +5,7 @@ const router = Router();
 
 router.get('/', eventsController.getAllEventTypes);
 router.get('/public/:username', eventsController.getUserEventsPublic);
+router.get('/:id', eventsController.getEventTypeById);
 router.get('/:username/:slug', eventsController.getEventTypeBySlug);
 router.post('/', eventsController.createEventType);
 router.put('/:id', eventsController.updateEventType);

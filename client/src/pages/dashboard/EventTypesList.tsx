@@ -32,6 +32,16 @@ export default function EventTypesList() {
     }
   };
 
+  const handleToggleActive = async (id: string, currentActive: boolean) => {
+    try {
+      await api.put(`/events/${id}`, { isActive: !currentActive });
+      setEvents(events.map(e => e.id === id ? { ...e, isActive: !currentActive } : e));
+      toast.success(currentActive ? 'Event type deactivated' : 'Event type activated');
+    } catch (err) {
+      toast.error('Failed to update event type');
+    }
+  };
+
   const filteredEvents = events.filter(event => 
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     event.slug.toLowerCase().includes(searchQuery.toLowerCase())
@@ -86,16 +96,19 @@ export default function EventTypesList() {
               </div>
               
               <div className="flex items-center gap-3 mt-4 sm:mt-0">
-                <Switch defaultChecked className="data-[state=checked]:bg-white data-[state=checked]:border-white [&>span]:data-[state=checked]:bg-black scale-90" />
+                <Switch 
+                  checked={event.isActive !== false}
+                  onCheckedChange={() => handleToggleActive(event.id, event.isActive !== false)}
+                  className="data-[state=checked]:bg-white data-[state=checked]:border-white [&>span]:data-[state=checked]:bg-black scale-90" />
                 
                 <div className="flex items-center gap-1 border-l border-border/60 pl-3">
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md" asChild>
-                    <a href={`http://localhost:5173/${event.user?.slug || 'admin'}/${event.slug}`} target="_blank" rel="noreferrer">
+                    <a href={`${window.location.origin}/${event.user?.slug || 'admin'}/${event.slug}`} target="_blank" rel="noreferrer">
                       <ExternalLink className="h-[15px] w-[15px]" />
                     </a>
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md" onClick={() => {
-                    navigator.clipboard.writeText(`http://localhost:5173/${event.user?.slug || 'admin'}/${event.slug}`);
+                    navigator.clipboard.writeText(`${window.location.origin}/${event.user?.slug || 'admin'}/${event.slug}`);
                     toast.success('Link copied to clipboard!');
                   }} title="Copy Link">
                     <LinkIcon className="h-[15px] w-[15px]" />
