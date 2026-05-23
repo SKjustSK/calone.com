@@ -4,13 +4,13 @@ A full-stack scheduling and booking web application that closely replicates Cal.
 
 This project was built for the Scaler SDE Intern Fullstack Assignment.
 
-## 🚀 Tech Stack
+## Tech Stack
 
 - **Frontend:** React.js, TypeScript, Vite, Tailwind CSS, shadcn/ui, `date-fns` (with `date-fns-tz` for timezone manipulation)
 - **Backend:** Node.js, Express.js, TypeScript
 - **Database:** PostgreSQL (via Prisma ORM)
 
-## 🛠️ Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
 - Node.js (v18 or higher)
@@ -62,17 +62,24 @@ npm run dev
 
 The frontend will be available at `http://localhost:5173`.
 
-## 🌍 Deployment
+## Deployment
 For step-by-step instructions on deploying the database to Supabase, the backend to Render, and the frontend to Vercel, please see the [DEPLOYMENT.md](./DEPLOYMENT.md) guide included in this repository.
 
-## ✨ Core Features Implemented
+
+## Core Features Implemented
 - **Event Types Management:** Create, edit, list, and delete event types with dynamically generated public booking URLs.
 - **Availability Settings:** Configure working days, exact time slots, and the specific timezone in which your schedule is based.
 - **Public Booking Page:** A seamless 3-column UI where the calendar intelligently maps the host's timezone to the booker's local timezone. Automatically detects and prevents double bookings.
 - **Bookings Dashboard:** View past and upcoming bookings, complete with the ability to cancel them.
 
-## 📝 Assumptions Made
+## Assumptions Made
 - **Authentication:** Per the assignment guidelines ("No Login Required"), authentication is mocked. The backend assigns a default user (Admin) to all incoming requests via a global middleware in `server/src/index.ts`.
 - **Timezone Handling:** It is assumed that the booker should always see time slots translated into their local browser time, while the availability limits strictly respect the host's custom timezone configuration. 
 - **Soft Deletes:** If an event type is deleted by the host, it is actually 'archived' (soft deleted) rather than fully erased. This assumption preserves historical integrity so past bookings linked to that event type remain visible and do not crash the dashboard.
 - **Strict Intervals:** Dummy data and scheduling logic strictly align to 15, 30, or 60 minute intervals to match Cal.com's actual behavior.
+
+#### A Note from the Developer
+
+Hello there! I was traveling on the first day of the assignment, so I couldn't devote the full two days; however, I gave my best effort within the one day I had.
+
+Since AI tools were encouraged, the development process was accelerated using Antigravity, an AI coding assistant.
