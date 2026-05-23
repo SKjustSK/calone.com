@@ -225,14 +225,14 @@ export default function AvailabilitySettings() {
                             type="time" 
                             value={block.startTime} 
                             onChange={(e) => handleUpdateBlock(day.value, blockIdx, 'startTime', e.target.value)} 
-                            className="w-[90px] h-[36px] bg-transparent border-[#333333] text-[14px] focus-visible:ring-1 focus-visible:ring-primary rounded-md text-white text-center [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                            className="w-[120px] h-[36px] bg-transparent border-[#333333] text-[14px] focus-visible:ring-1 focus-visible:ring-primary rounded-md text-white text-center [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                           />
                           <span className="text-muted-foreground/60 text-[14px]">-</span>
                           <Input 
                             type="time" 
                             value={block.endTime} 
                             onChange={(e) => handleUpdateBlock(day.value, blockIdx, 'endTime', e.target.value)} 
-                            className="w-[90px] h-[36px] bg-transparent border-[#333333] text-[14px] focus-visible:ring-1 focus-visible:ring-primary rounded-md text-white text-center [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                            className="w-[120px] h-[36px] bg-transparent border-[#333333] text-[14px] focus-visible:ring-1 focus-visible:ring-primary rounded-md text-white text-center [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                           />
                           
                           <Button 
