@@ -43,6 +43,11 @@ app.use('/api/events', eventRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/bookings', bookingRoutes);
 
+// Healthcheck endpoint for Render cron jobs to keep the server awake
+app.get('/ping', (req: Request, res: Response) => {
+  res.status(200).send('pong');
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
