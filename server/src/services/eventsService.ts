@@ -6,8 +6,8 @@ import { EventType } from '@prisma/client';
  * @param userId The ID of the user
  * @returns A promise resolving to an array of EventTypes
  */
-export const getEventsByUser = async (userId: string): Promise<EventType[]> => {
-  return prisma.eventType.findMany({ where: { userId } });
+export const getEventsByUser = async (userId: string) => {
+  return prisma.eventType.findMany({ where: { userId, isArchived: false }, include: { user: true } });
 };
 
 /**
@@ -15,10 +15,16 @@ export const getEventsByUser = async (userId: string): Promise<EventType[]> => {
  * @param slug The unique URL slug of the event
  * @returns A promise resolving to the EventType with User relation, or null
  */
-export const getEventBySlug = async (slug: string) => {
+export const getEventBySlugAndUser = async (username: string, slug: string) => {
   return prisma.eventType.findFirst({
-    where: { slug },
-    include: { user: true }
+    where: { slug, isArchived: false, user: { slug: username } },
+    include: { 
+      user: true,
+      bookings: {
+        where: { status: 'ACCEPTED' },
+        select: { startTime: true, endTime: true, status: true }
+      }
+    }
   });
 };
 
@@ -47,5 +53,11 @@ export const updateEvent = async (id: string, data: Partial<EventType>): Promise
  * @returns A promise resolving to the deleted EventType
  */
 export const deleteEvent = async (id: string): Promise<EventType> => {
-  return prisma.eventType.delete({ where: { id } });
+  return prisma.eventType.update({ 
+    where: { id },
+    data: { 
+      isArchived: true,
+      slug: `${id}-archived` // Free up the original slug for future use
+    }
+  });
 };

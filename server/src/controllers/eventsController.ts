@@ -23,7 +23,7 @@ export const getAllEventTypes = async (req: Request, res: Response): Promise<voi
  */
 export const getEventTypeBySlug = async (req: Request, res: Response): Promise<void> => {
   try {
-    const event = await eventsService.getEventBySlug(req.params.slug as string);
+    const event = await eventsService.getEventBySlugAndUser(req.params.username as string, req.params.slug as string);
     if (!event) {
       res.status(404).json({ error: 'Event Type not found' });
       return;
