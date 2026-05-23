@@ -16,16 +16,27 @@ export const getEventsByUser = async (userId: string) => {
  * @returns A promise resolving to the EventType with User relation, or null
  */
 export const getEventBySlugAndUser = async (username: string, slug: string) => {
-  return prisma.eventType.findFirst({
+  const event = await prisma.eventType.findFirst({
     where: { slug, isArchived: false, user: { slug: username } },
-    include: { 
-      user: true,
-      bookings: {
-        where: { status: 'ACCEPTED' },
-        select: { startTime: true, endTime: true, status: true }
-      }
-    }
+    include: { user: true }
   });
+
+  if (!event) return null;
+
+  // Fetch all accepted bookings for this user across all their event types
+  // This allows the frontend to prevent double booking across different event types
+  const allUserBookings = await prisma.booking.findMany({
+    where: {
+      eventType: { userId: event.userId },
+      status: 'ACCEPTED'
+    },
+    select: { startTime: true, endTime: true, status: true }
+  });
+
+  return {
+    ...event,
+    bookings: allUserBookings
+  };
 };
 
 /**
