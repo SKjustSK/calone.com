@@ -1,13 +1,20 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { 
-  Calendar, Clock, Link as LinkIcon, ExternalLink
+  Calendar, Clock, Link as LinkIcon, ExternalLink, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface NavItem {
+  name: string;
+  href: string;
+  icon: any;
+  hasSubmenu?: boolean;
+}
 
 export default function DashboardLayout() {
   const location = useLocation();
 
-  const navigation = [
+  const navigation: NavItem[] = [
     { name: 'Event types', href: '/dashboard/event-types', icon: LinkIcon },
     { name: 'Bookings', href: '/dashboard/bookings', icon: Calendar },
     { name: 'Availability', href: '/dashboard/availability', icon: Clock },

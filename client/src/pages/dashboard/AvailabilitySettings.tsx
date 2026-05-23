@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Plus, Trash2, Globe, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const TIMEZONES = [
@@ -204,7 +202,7 @@ export default function AvailabilitySettings() {
         {/* Left Column: Schedule */}
         <div className="flex-1 w-full rounded-[10px] border border-border/40 bg-card overflow-hidden">
           <div className="flex flex-col">
-            {DAYS.map((day, idx) => {
+            {DAYS.map((day) => {
               const dayData = schedule[day.value];
               return (
                 <div key={day.value} className="flex flex-col sm:flex-row sm:items-start p-4">

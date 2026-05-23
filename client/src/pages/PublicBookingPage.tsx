@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Globe, Video } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 import {
   format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, isToday, isBefore, addMinutes, startOfDay, getDay
