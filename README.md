@@ -83,3 +83,5 @@ For step-by-step instructions on deploying the database to Supabase, the backend
 Hello there! I was traveling on the first day of the assignment, so I couldn't devote the full two days; however, I gave my best effort within the one day I had.
 
 Since AI tools were encouraged, the development process was accelerated using Antigravity, an AI coding assistant.
+
+Thank you for taking the time to review my submission. I hope you like the project!
