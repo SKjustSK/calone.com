@@ -21,8 +21,11 @@ This project was built for the Scaler SDE Intern Fullstack Assignment.
 2. Navigate to the `server` directory and create a `.env` file:
    ```env
    PORT=3000
-   DATABASE_URL="postgresql://<your_user>:<your_password>@localhost:5432/calone_db?schema=public"
+   DATABASE_URL="postgresql://<your_user>:<your_password>@localhost:5432/calone_db?schema=public&pgbouncer=true"
+   DIRECT_URL="postgresql://<your_user>:<your_password>@localhost:5432/calone_db?schema=public"
+   FRONTEND_URL="http://localhost:5173"
    ```
+   *(Note: `DIRECT_URL` and `pgbouncer=true` are optional for local databases, but highly recommended if using Supabase connection pooling).*
 
 ### 2. Backend Setup
 Open a terminal and run the following commands:
@@ -45,12 +48,22 @@ Open a new terminal and run:
 ```bash
 cd client
 npm install
+```
 
-# Start the development server
+Create a `.env` file in the `client` directory:
+```env
+VITE_API_URL=http://localhost:3000/api
+```
+
+Start the development server:
+```bash
 npm run dev
 ```
 
 The frontend will be available at `http://localhost:5173`.
+
+## 🌍 Deployment
+For step-by-step instructions on deploying the database to Supabase, the backend to Render, and the frontend to Vercel, please see the [DEPLOYMENT.md](./DEPLOYMENT.md) guide included in this repository.
 
 ## ✨ Core Features Implemented
 - **Event Types Management:** Create, edit, list, and delete event types with dynamically generated public booking URLs.
