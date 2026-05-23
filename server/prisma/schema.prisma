@@ -23,6 +23,7 @@ model EventType {
   title       String
   description String?
   duration    Int       // in minutes
+  bufferTime  Int       @default(0) // in minutes
   slug        String
   isArchived  Boolean   @default(false)
   userId      String

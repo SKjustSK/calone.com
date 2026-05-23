@@ -16,6 +16,24 @@ export const getAllEventTypes = async (req: Request, res: Response): Promise<voi
 };
 
 /**
+ * Retrieves all event types for a public user profile.
+ * @param req Express request object
+ * @param res Express response object
+ */
+export const getUserEventsPublic = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const events = await eventsService.getPublicEventsByUsername(req.params.username as string);
+    if (!events) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    res.json(events);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
  * Retrieves a specific event type by its URL slug.
  * Useful for the public booking page to fetch event details.
  * @param req Express request object

@@ -7,12 +7,15 @@ import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import BookingsDashboard from './pages/dashboard/BookingsDashboard';
 import PublicBookingPage from './pages/PublicBookingPage';
+import PublicProfilePage from './pages/PublicProfilePage';
+
 function App() {
   return (
     <ThemeProvider defaultTheme="system" attribute="class" storageKey="calclone-theme">
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard/event-types" replace />} />
+          <Route path="/:username" element={<PublicProfilePage />} />
           <Route path="/:username/:slug" element={<PublicBookingPage />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route path="event-types" element={<EventTypesList />} />

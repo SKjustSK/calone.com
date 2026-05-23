@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Plus, Trash2, Globe } from 'lucide-react';
+import { Plus, Trash2, Globe, ArrowLeft } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const TIMEZONES = [
@@ -148,113 +150,114 @@ export default function AvailabilitySettings() {
     }
   };
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div className="p-8 text-muted-foreground text-sm">Loading...</div>;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold tracking-tight">Working hours</h2>
+    <div className="w-full pt-2 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-2">
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="icon" className="h-8 w-8 mt-0.5 rounded-full text-muted-foreground hover:text-white" asChild>
+            <Link to="/dashboard/event-types">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h2 className="text-[20px] font-bold text-foreground flex items-center gap-2">
+              Working hours
+            </h2>
+            <p className="text-[14px] text-muted-foreground mt-0.5 font-medium">Mon - Fri, 9:00 AM - 5:00 PM</p>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Configure times when you are available for bookings.</p>
         </div>
-        <Button onClick={handleSave} className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-6">
-          Save
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button onClick={handleSave} className="bg-white text-black hover:bg-white/90 rounded-md h-[32px] px-4 font-semibold text-sm">
+            Save
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        <Card className="flex-1 overflow-hidden border-border bg-card">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* Left Column: Schedule */}
+        <div className="flex-1 w-full rounded-[10px] border border-border/40 bg-card overflow-hidden">
           <div className="flex flex-col">
             {DAYS.map((day, idx) => {
               const dayData = schedule[day.value];
               return (
-                <div key={day.value} className={`flex flex-col sm:flex-row sm:items-start gap-4 p-5 ${idx !== DAYS.length - 1 ? 'border-b border-border/50' : ''}`}>
-                  <div className="flex items-center gap-3 w-40 pt-2">
+                <div key={day.value} className="flex flex-col sm:flex-row sm:items-start p-4">
+                  {/* Switch and Day Name */}
+                  <div className="flex items-center gap-3 w-[140px] pt-1">
                     <Switch 
                       checked={dayData.enabled} 
                       onCheckedChange={() => handleToggleDay(day.value)} 
-                      className="data-[state=checked]:bg-primary"
+                      className="data-[state=checked]:bg-white data-[state=checked]:border-white [&>span]:data-[state=checked]:bg-black scale-90"
                     />
-                    <span className="font-medium text-sm">{day.label}</span>
+                    <span className="font-semibold text-[14px] text-white">{day.label}</span>
                   </div>
                   
-                  <div className="flex-1 space-y-3">
+                  {/* Time Blocks */}
+                  <div className="flex-1 flex flex-col gap-3">
                     {dayData.enabled ? (
-                      dayData.blocks.map((block, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
+                      dayData.blocks.map((block, blockIdx) => (
+                        <div key={blockIdx} className="flex items-center gap-3">
                           <Input 
                             type="time" 
                             value={block.startTime} 
-                            onChange={(e) => handleUpdateBlock(day.value, idx, 'startTime', e.target.value)} 
-                            className="w-28 h-9 bg-transparent border-border/50 text-sm focus-visible:ring-1 focus-visible:ring-primary rounded-md"
+                            onChange={(e) => handleUpdateBlock(day.value, blockIdx, 'startTime', e.target.value)} 
+                            className="w-[90px] h-[36px] bg-transparent border-[#333333] text-[14px] focus-visible:ring-1 focus-visible:ring-primary rounded-md text-white text-center [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                           />
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground/60 text-[14px]">-</span>
                           <Input 
                             type="time" 
                             value={block.endTime} 
-                            onChange={(e) => handleUpdateBlock(day.value, idx, 'endTime', e.target.value)} 
-                            className="w-28 h-9 bg-transparent border-border/50 text-sm focus-visible:ring-1 focus-visible:ring-primary rounded-md"
+                            onChange={(e) => handleUpdateBlock(day.value, blockIdx, 'endTime', e.target.value)} 
+                            className="w-[90px] h-[36px] bg-transparent border-[#333333] text-[14px] focus-visible:ring-1 focus-visible:ring-primary rounded-md text-white text-center [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                           />
                           
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => handleRemoveBlock(day.value, idx)}
-                            className="text-muted-foreground hover:text-destructive ml-2 h-8 w-8"
+                            onClick={() => handleAddBlock(day.value)}
+                            className="text-muted-foreground hover:text-white h-8 w-8 ml-1"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Plus className="h-[18px] w-[18px]" />
                           </Button>
 
-                          {idx === dayData.blocks.length - 1 && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => handleAddBlock(day.value)}
-                              className="text-muted-foreground h-8 w-8"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleRemoveBlock(day.value, blockIdx)}
+                            className="text-muted-foreground hover:text-destructive h-8 w-8"
+                          >
+                            <Trash2 className="h-[18px] w-[18px]" />
+                          </Button>
                         </div>
                       ))
                     ) : (
-                      <div className="text-muted-foreground text-sm py-2">Unavailable</div>
+                      <div className="text-muted-foreground/60 text-[14px] py-1.5">Unavailable</div>
                     )}
                   </div>
                 </div>
               );
             })}
           </div>
-        </Card>
-
-        <div className="w-full lg:w-64 space-y-4">
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center text-muted-foreground">
-                <Globe className="mr-2 h-4 w-4" />
-                Timezone
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select value={timezone} onValueChange={setTimezone}>
-                <SelectTrigger className="w-full bg-transparent border-border/50 text-sm h-9">
-                  <SelectValue placeholder="Select timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONES.map(tz => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label} ({tz.value})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
         </div>
 
-
+        {/* Right Column: Settings */}
+        <div className="w-full lg:w-[280px] flex-shrink-0 space-y-2">
+          <div className="text-[13px] font-semibold text-white mb-2">Timezone</div>
+          <Select value={timezone} onValueChange={setTimezone}>
+            <SelectTrigger className="w-full bg-card border-border/40 text-[14px] h-[36px] rounded-md text-white">
+              <SelectValue placeholder="Select timezone" />
+            </SelectTrigger>
+            <SelectContent className="border-border bg-card">
+              {TIMEZONES.map(tz => (
+                <SelectItem key={tz.value} value={tz.value}>
+                  {tz.value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

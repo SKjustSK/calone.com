@@ -6,6 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function EventTypeEditor() {
   const { id } = useParams();
@@ -15,6 +22,7 @@ export default function EventTypeEditor() {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [duration, setDuration] = useState(30);
+  const [bufferTime, setBufferTime] = useState(0);
   const [description, setDescription] = useState('');
   
   useEffect(() => {
@@ -25,6 +33,7 @@ export default function EventTypeEditor() {
           setTitle(ev.title);
           setSlug(ev.slug);
           setDuration(ev.duration);
+          setBufferTime(ev.bufferTime || 0);
           setDescription(ev.description || '');
         }
       });
@@ -34,7 +43,7 @@ export default function EventTypeEditor() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = { title, slug, duration, description };
+      const payload = { title, slug, duration, bufferTime, description };
       if (isEditing) {
         await api.put(`/events/${id}`, payload);
         toast.success("Event type updated successfully");
@@ -57,8 +66,8 @@ export default function EventTypeEditor() {
       </Button>
       
       <div className="mb-8">
-        <h2 className="text-3xl font-bold tracking-tight">{isEditing ? 'Edit Event Type' : 'New Event Type'}</h2>
-        <p className="text-muted-foreground">Configure the details of this meeting type.</p>
+        <h2 className="text-[22px] font-bold text-foreground">{isEditing ? 'Edit Event Type' : 'New Event Type'}</h2>
+        <p className="text-[14px] text-muted-foreground mt-1 font-medium">Configure the details of this meeting type.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -100,6 +109,23 @@ export default function EventTypeEditor() {
             onChange={e => setDuration(parseInt(e.target.value))} 
             required 
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="bufferTime">Buffer Time (minutes)</Label>
+          <Select value={bufferTime.toString()} onValueChange={(v) => setBufferTime(parseInt(v))}>
+            <SelectTrigger id="bufferTime">
+              <SelectValue placeholder="Select buffer time" />
+            </SelectTrigger>
+            <SelectContent>
+              {[0, 5, 10, 15, 30, 45, 60].map((mins) => (
+                <SelectItem key={mins} value={mins.toString()}>
+                  {mins} {mins === 1 ? 'minute' : 'minutes'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[13px] text-muted-foreground mt-1">Automatically adds blocked time after this meeting.</p>
         </div>
 
         <div className="space-y-2">

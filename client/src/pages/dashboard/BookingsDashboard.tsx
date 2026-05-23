@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format, isPast, isFuture } from 'date-fns';
 import { toast } from 'sonner';
-import { Calendar, MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Copy } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,87 +65,104 @@ export default function BookingsDashboard() {
   });
 
   if (loading) {
-    return <div className="p-8">Loading bookings...</div>;
+    return <div className="p-8 text-muted-foreground text-sm">Loading bookings...</div>;
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Bookings</h2>
-        <p className="text-sm text-muted-foreground mt-1">See upcoming and past events booked through your links.</p>
-      </div>
-
-      <div className="flex items-center space-x-1 mb-6">
+    <div className="w-full space-y-4 pt-2">
+      
+      {/* Top Navigation Tabs */}
+      <div className="flex items-center space-x-1 mb-6 border border-border/40 rounded-full w-max p-1 bg-card">
         {(['upcoming', 'past', 'cancelled'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-3 py-1.5 text-sm font-medium capitalize rounded-full transition-colors ${
+            className={cn(
+              "px-4 py-1.5 text-[14px] font-medium capitalize rounded-full transition-colors",
               activeTab === tab
-                ? 'bg-secondary text-secondary-foreground'
-                : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
-            }`}
+                ? "bg-secondary/60 text-white"
+                : "text-muted-foreground/80 hover:text-white"
+            )}
           >
-            {tab}
+            {tab === 'cancelled' ? 'Canceled' : tab}
           </button>
         ))}
       </div>
 
-      <Card className="overflow-hidden border-border bg-card">
-        <div className="bg-muted/30 px-6 py-3 border-b border-border/50">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Next</h3>
+      <div className="rounded-[10px] border border-border/40 bg-card overflow-hidden">
+        {/* Next Header */}
+        <div className="px-6 py-3 border-b border-border/40">
+          <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+            {activeTab === 'upcoming' ? 'Next' : activeTab}
+          </h3>
         </div>
+        
         <div className="flex flex-col">
           {filteredBookings.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Calendar className="mx-auto h-12 w-12 opacity-20 mb-4" />
-              <p>No {activeTab} bookings found.</p>
+            <div className="text-center py-16 text-muted-foreground text-[14px]">
+              No {activeTab === 'cancelled' ? 'canceled' : activeTab} bookings found.
             </div>
           ) : (
             filteredBookings.map((booking, idx) => (
-              <div key={booking.id} className={`flex flex-col md:flex-row p-6 ${idx !== filteredBookings.length - 1 ? 'border-b border-border/50' : ''}`}>
-                <div className="md:w-64 flex-shrink-0 pr-6">
-                  <div className="font-medium text-sm mb-1.5">
-                    {format(new Date(booking.startTime), 'EEE, d MMM yyyy')}
+              <div key={booking.id} className={cn("flex flex-col md:flex-row p-6 items-start md:items-center", idx !== filteredBookings.length - 1 && "border-b border-border/40")}>
+                
+                {/* Left Column: Date & Time */}
+                <div className="w-full md:w-[220px] flex-shrink-0 mb-4 md:mb-0">
+                  <div className="font-semibold text-[14px] text-white">
+                    {format(new Date(booking.startTime), 'EEE, d MMM')}
                   </div>
-                  <div className="text-muted-foreground text-sm flex items-center">
-                    {format(new Date(booking.startTime), 'h:mma')} - {format(new Date(booking.endTime), 'h:mma')}
+                  <div className="text-muted-foreground/80 text-[13px] mt-0.5">
+                    {format(new Date(booking.startTime), 'h:mma').toLowerCase()} - {format(new Date(booking.endTime), 'h:mma').toLowerCase()}
                   </div>
                 </div>
-                <div className="flex-1 flex justify-between items-start mt-4 md:mt-0 pl-0 md:pl-6 border-t md:border-t-0 md:border-l border-border/50 pt-4 md:pt-0">
-                  <div>
-                    <h3 className="font-semibold text-sm mb-1">{booking.eventType.title} between {booking.bookerName} and Admin</h3>
-                    <div className="flex items-center text-muted-foreground text-sm">
-                      You and {booking.bookerName}
+                
+                {/* Middle Column: Details */}
+                <div className="flex-1 mb-4 md:mb-0">
+                  <div className="font-semibold text-[14px] text-white">
+                    {booking.eventType.title} between you and {booking.bookerName}
+                  </div>
+                  <div className="text-muted-foreground/80 text-[13px] mt-1 flex flex-col gap-1">
+                    <div>You and {booking.bookerName}</div>
+                    <div 
+                      className="group flex items-center gap-2 cursor-pointer hover:text-white transition-colors w-max"
+                      onClick={() => {
+                        navigator.clipboard.writeText(booking.bookerEmail);
+                        toast.success('Email copied to clipboard');
+                      }}
+                    >
+                      {booking.bookerEmail}
+                      <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {booking.status === 'CANCELLED' && (
-                      <span className="bg-destructive/10 text-destructive text-xs px-2 py-1 rounded-full font-medium">
-                        Cancelled
-                      </span>
-                    )}
-                    {activeTab === 'upcoming' && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-transparent border-border/50">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleCancel(booking.id)} className="cursor-pointer text-destructive focus:text-destructive">
-                            Cancel booking
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
+                </div>
+
+                {/* Right Column: Actions */}
+                <div className="flex-shrink-0 flex items-center justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-[32px] w-[32px] rounded-full border border-border/60 bg-transparent text-muted-foreground hover:text-white hover:bg-secondary">
+                        <MoreHorizontal className="h-[15px] w-[15px]" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 border-border bg-card">
+                      {booking.status !== 'CANCELLED' && (
+                        <DropdownMenuItem className="text-red-500 focus:text-red-500 cursor-pointer flex items-center font-medium" onClick={() => handleCancel(booking.id)}>
+                          Cancel Booking
+                        </DropdownMenuItem>
+                      )}
+                      {booking.status === 'CANCELLED' && (
+                        <DropdownMenuItem disabled className="text-muted-foreground flex items-center font-medium">
+                          Already Canceled
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

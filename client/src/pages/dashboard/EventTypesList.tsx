@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Plus, Clock, MoreHorizontal, Copy, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Clock, MoreHorizontal, ExternalLink, Link as LinkIcon, Pencil, Trash2, Search, EyeOff } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export default function EventTypesList() {
   const [events, setEvents] = useState<any[]>([]);
@@ -31,27 +32,32 @@ export default function EventTypesList() {
     }
   };
 
+  const filteredEvents = events.filter(event => 
+    event.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    event.slug.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Event types</h2>
-          <p className="text-sm text-muted-foreground">Configure different events for people to book on your calendar.</p>
+          <h2 className="text-[22px] font-bold text-foreground">Event types</h2>
+          <p className="text-[14px] text-muted-foreground mt-1 font-medium">Configure different events for people to book on your calendar.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-              <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <Search className="w-[14px] h-[14px] text-muted-foreground" />
             </span>
             <input 
               type="text" 
               placeholder="Search" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 border rounded-md text-sm bg-transparent w-48 focus:outline-none focus:ring-1 focus:ring-primary" 
+              className="pl-8 pr-4 py-[6px] rounded-full text-sm bg-secondary/80 text-foreground w-[180px] focus:outline-none border-none placeholder:text-muted-foreground" 
             />
           </div>
-          <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
+          <Button asChild className="bg-white text-black hover:bg-white/90 rounded-md h-[32px] px-3 font-semibold text-sm">
             <Link to="/dashboard/event-types/new">
               <Plus className="mr-1.5 h-4 w-4" /> New
             </Link>
@@ -59,63 +65,72 @@ export default function EventTypesList() {
         </div>
       </div>
 
-      <Card className="overflow-hidden border-border bg-card">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="flex flex-col">
-          {events
-            .filter(event => 
-              event.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-              event.slug.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .map((event, idx, filteredArray) => (
-            <div key={event.id} className={`flex items-center justify-between p-5 ${idx !== filteredArray.length - 1 ? 'border-b border-border/50' : ''}`}>
+          {filteredEvents.map((event, idx) => (
+            <div key={event.id} className={cn("flex flex-col sm:flex-row sm:items-center justify-between p-[18px]", idx !== filteredEvents.length - 1 && "border-b border-border/60")}>
               <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <h3 className="text-base font-semibold">{event.title}</h3>
-                  <span className="text-muted-foreground text-sm font-normal">/{event.user?.slug || 'admin'}/{event.slug}</span>
+                <div className="flex items-center gap-2 mb-[6px]">
+                  <h3 className="text-[15px] font-bold text-foreground">{event.title}</h3>
+                  <span className="text-muted-foreground/80 text-[14px] font-medium">/{event.user?.slug || 'admin'}/{event.slug}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Clock className="mr-1.5 h-4 w-4" />
-                    {event.duration}m
-                  </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span className="text-[13px] font-medium">{event.duration}m</span>
+                  {event.slug === 'secret' && (
+                    <span className="ml-2 text-[11px] font-medium px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 flex items-center">
+                      <EyeOff className="w-3 h-3 mr-1" />Hidden
+                    </span>
+                  )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-9 w-9 rounded-md bg-transparent border-border/50" onClick={() => {
-                  navigator.clipboard.writeText(`http://localhost:5173/${event.user?.slug || 'admin'}/${event.slug}`);
-                  toast.success('Link copied to clipboard!');
-                }} title="Copy Link">
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center gap-3 mt-4 sm:mt-0">
+                <Switch defaultChecked className="data-[state=checked]:bg-white data-[state=checked]:border-white [&>span]:data-[state=checked]:bg-black scale-90" />
                 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-9 w-9 rounded-md bg-transparent border-border/50">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem asChild>
-                      <Link to={`/dashboard/event-types/${event.id}`} className="cursor-pointer flex items-center">
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDelete(event.id)} className="cursor-pointer text-destructive focus:text-destructive flex items-center">
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center gap-1 border-l border-border/60 pl-3">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md" asChild>
+                    <a href={`http://localhost:5173/${event.user?.slug || 'admin'}/${event.slug}`} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-[15px] w-[15px]" />
+                    </a>
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md" onClick={() => {
+                    navigator.clipboard.writeText(`http://localhost:5173/${event.user?.slug || 'admin'}/${event.slug}`);
+                    toast.success('Link copied to clipboard!');
+                  }} title="Copy Link">
+                    <LinkIcon className="h-[15px] w-[15px]" />
+                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md">
+                        <MoreHorizontal className="h-[15px] w-[15px]" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 border-border bg-card">
+                      <DropdownMenuItem asChild>
+                        <Link to={`/dashboard/event-types/${event.id}`} className="cursor-pointer flex items-center">
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-red-500 focus:text-red-500 cursor-pointer flex items-center" onClick={() => handleDelete(event.id)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
           ))}
-          {events.length === 0 && (
-            <div className="p-8 text-center text-muted-foreground">
-              No event types found. Create one to get started!
+          {filteredEvents.length === 0 && (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              No event types found.
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

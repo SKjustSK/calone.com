@@ -75,9 +75,25 @@ async function main() {
 
   // 4. Create Bookings
   const now = new Date();
-  
-  const subDays = (date: Date, days: number) => new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
-  const addDays = (date: Date, days: number) => new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+  const getNextWorkingDay = (startDate: Date, skipDays: number): Date => {
+    let d = new Date(startDate);
+    let added = 0;
+    while (added < skipDays) {
+      d.setDate(d.getDate() + 1);
+      if (d.getDay() !== 0 && d.getDay() !== 6) added++;
+    }
+    return d;
+  };
+
+  const getPrevWorkingDay = (startDate: Date, skipDays: number): Date => {
+    let d = new Date(startDate);
+    let subtracted = 0;
+    while (subtracted < skipDays) {
+      d.setDate(d.getDate() - 1);
+      if (d.getDay() !== 0 && d.getDay() !== 6) subtracted++;
+    }
+    return d;
+  };
 
   const getCleanDate = (date: Date, hours: number, minutes: number = 0) => {
     const d = new Date(date);
@@ -85,11 +101,11 @@ async function main() {
     return d;
   };
 
-  const pastDate1 = getCleanDate(subDays(now, 2), 10, 0); // 10:00 AM
-  const pastDate2 = getCleanDate(subDays(now, 5), 14, 30); // 2:30 PM
-  const upcomingDate1 = getCleanDate(addDays(now, 1), 9, 15); // 9:15 AM
-  const upcomingDate2 = getCleanDate(addDays(now, 2), 15, 0); // 3:00 PM
-  const cancelledDate = getCleanDate(addDays(now, 3), 11, 30); // 11:30 AM
+  const pastDate1 = getCleanDate(getPrevWorkingDay(now, 1), 10, 0); // 10:00 AM
+  const pastDate2 = getCleanDate(getPrevWorkingDay(now, 3), 14, 30); // 2:30 PM
+  const upcomingDate1 = getCleanDate(getNextWorkingDay(now, 1), 9, 15); // 9:15 AM
+  const upcomingDate2 = getCleanDate(getNextWorkingDay(now, 2), 15, 0); // 3:00 PM
+  const cancelledDate = getCleanDate(getNextWorkingDay(now, 3), 11, 30); // 11:30 AM
 
   // Past Bookings
   const pastBookings = [

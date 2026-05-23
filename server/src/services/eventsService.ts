@@ -11,6 +11,17 @@ export const getEventsByUser = async (userId: string) => {
 };
 
 /**
+ * Fetches all event types for a public profile by username.
+ * @param username The slug of the user
+ */
+export const getPublicEventsByUsername = async (username: string) => {
+  return prisma.eventType.findMany({
+    where: { user: { slug: username }, isArchived: false },
+    include: { user: { select: { name: true, slug: true, email: true } } }
+  });
+};
+
+/**
  * Fetches an event type by its unique URL slug, including the owner's user details.
  * @param slug The unique URL slug of the event
  * @returns A promise resolving to the EventType with User relation, or null
@@ -30,7 +41,7 @@ export const getEventBySlugAndUser = async (username: string, slug: string) => {
       eventType: { userId: event.userId },
       status: 'ACCEPTED'
     },
-    select: { startTime: true, endTime: true, status: true }
+    select: { startTime: true, endTime: true, status: true, eventType: { select: { bufferTime: true } } }
   });
 
   return {
