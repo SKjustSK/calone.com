@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { format, isPast, isFuture } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { toast } from 'sonner';
 import { MoreHorizontal, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -20,9 +21,11 @@ interface Booking {
   startTime: string;
   endTime: string;
   status: string;
+  customResponses?: any;
   eventType: {
     title: string;
     duration: number;
+    customQuestions?: { id: string; label: string }[];
   };
 }
 
@@ -30,11 +33,16 @@ export default function BookingsDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming');
+  const [userTimezone, setUserTimezone] = useState('Asia/Calcutta');
 
   const fetchBookings = async () => {
     try {
-      const response = await api.get('/bookings');
-      setBookings(response.data);
+      const [bookingsRes, userRes] = await Promise.all([
+        api.get('/bookings'),
+        api.get('/user/me')
+      ]);
+      setBookings(bookingsRes.data);
+      if (userRes.data?.timezone) setUserTimezone(userRes.data.timezone);
     } catch (error) {
       toast.error('Failed to load bookings');
     } finally {
@@ -109,10 +117,10 @@ export default function BookingsDashboard() {
                 {/* Left Column: Date & Time */}
                 <div className="w-full md:w-[220px] flex-shrink-0 mb-4 md:mb-0">
                   <div className="font-semibold text-[14px] text-white">
-                    {format(new Date(booking.startTime), 'EEE, d MMM')}
+                    {format(toZonedTime(new Date(booking.startTime), userTimezone), 'EEE, d MMM')}
                   </div>
                   <div className="text-muted-foreground/80 text-[13px] mt-0.5">
-                    {format(new Date(booking.startTime), 'h:mma').toLowerCase()} - {format(new Date(booking.endTime), 'h:mma').toLowerCase()}
+                    {format(toZonedTime(new Date(booking.startTime), userTimezone), 'h:mma').toLowerCase()} - {format(toZonedTime(new Date(booking.endTime), userTimezone), 'h:mma').toLowerCase()}
                   </div>
                 </div>
                 
@@ -133,6 +141,15 @@ export default function BookingsDashboard() {
                       {booking.bookerEmail}
                       <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
+                    {booking.eventType.customQuestions && booking.customResponses && booking.eventType.customQuestions.map((q: any) => {
+                      const ans = booking.customResponses[q.id];
+                      if (!ans) return null;
+                      return (
+                        <div key={q.id} className="mt-2 text-[13px]">
+                          <span className="font-medium text-white">{q.label}:</span> <span className="text-muted-foreground">{ans}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 

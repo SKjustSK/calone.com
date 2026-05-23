@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Clock, Calendar as CalendarIcon, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Globe, Video } from 'lucide-react';
 import {
   format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, isToday, isBefore, addMinutes, startOfDay, getDay, addDays
+  isSameDay, isToday, isBefore, addMinutes, startOfDay, getDay
 } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import {
@@ -26,6 +26,7 @@ interface EventType {
   description: string;
   duration: number;
   bufferTime: number;
+  customQuestions?: { id: string; label: string; required: boolean; type: string }[];
   user: { id: string; name: string; email: string; timezone: string };
   bookings: { startTime: string; endTime: string; eventType?: { bufferTime: number } }[];
 }
@@ -36,10 +37,18 @@ interface Availability {
   endTime: string;
 }
 
+interface DateOverride {
+  date: string;
+  startTime: string;
+  endTime: string;
+  isDayOff: boolean;
+}
+
 export default function PublicBookingPage() {
   const { username, slug } = useParams();
   const [event, setEvent] = useState<EventType | null>(null);
   const [availability, setAvailability] = useState<Availability[]>([]);
+  const [dateOverrides, setDateOverrides] = useState<DateOverride[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +59,7 @@ export default function PublicBookingPage() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [customResponses, setCustomResponses] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -59,7 +69,8 @@ export default function PublicBookingPage() {
         const eventRes = await api.get(`/events/${username}/${slug}`);
         setEvent(eventRes.data);
         const availRes = await api.get(`/availability?userId=${eventRes.data.user.id}`);
-        setAvailability(availRes.data);
+        setAvailability(availRes.data.availability || []);
+        setDateOverrides(availRes.data.dateOverrides || []);
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load booking page');
       } finally {
@@ -70,49 +81,58 @@ export default function PublicBookingPage() {
   }, [username, slug]);
 
   const generateTimeSlots = (date: Date) => {
-    if (!event || availability.length === 0) return [];
+    // Bug 3 fix: return empty only if both availability AND overrides are empty
+    if (!event || (availability.length === 0 && dateOverrides.length === 0)) return [];
     
     const hostTimezone = event.user.timezone || 'Asia/Calcutta';
     const slots: Date[] = [];
     const now = new Date();
 
-    for (let offset = -1; offset <= 1; offset++) {
-      const checkDate = addDays(date, offset);
-      const hostDayOfWeek = getDay(checkDate);
-      const dayAvails = availability.filter(a => a.dayOfWeek === hostDayOfWeek);
-      
-      for (const dayAvail of dayAvails) {
-        const startStr = `${format(checkDate, 'yyyy-MM-dd')}T${dayAvail.startTime}:00`;
-        let currentSlot = fromZonedTime(startStr, hostTimezone);
+    // The calendar date string (e.g. "2026-05-26") — the date the user clicked
+    const dateStr = format(date, 'yyyy-MM-dd');
 
-        const endStr = `${format(checkDate, 'yyyy-MM-dd')}T${dayAvail.endTime}:00`;
-        let endLimit = fromZonedTime(endStr, hostTimezone);
+    // Bug 4 fix: compare override dates using the host timezone
+    let shiftsToCheck: { startTime: string; endTime: string }[] = [];
+    const override = dateOverrides.find(
+      o => format(toZonedTime(new Date(o.date), hostTimezone), 'yyyy-MM-dd') === dateStr
+    );
 
-        if (isBefore(endLimit, currentSlot)) {
-          endLimit = addDays(endLimit, 1);
-        }
+    if (override) {
+      if (!override.isDayOff) {
+        shiftsToCheck = [{ startTime: override.startTime, endTime: override.endTime }];
+      }
+    } else {
+      // Bug 10 fix: derive day-of-week from the calendar date directly — no ±1 offset loop
+      const hostDayOfWeek = getDay(date);
+      shiftsToCheck = availability.filter(a => a.dayOfWeek === hostDayOfWeek);
+    }
 
-        while (isBefore(currentSlot, endLimit)) {
-          const slotEnd = addMinutes(currentSlot, event.duration);
-          if (isBefore(slotEnd, endLimit) || slotEnd.getTime() === endLimit.getTime()) {
-            if (isSameDay(currentSlot, date)) {
-              if (!isBefore(currentSlot, now)) {
-                const conflict = event.bookings.some((b: any) => {
-                  const bStart = new Date(b.startTime);
-                  const bEndWithBuffer = addMinutes(new Date(b.endTime), b.eventType?.bufferTime || 0);
-                  const slotEndWithBuffer = addMinutes(slotEnd, event.bufferTime || 0);
-                  return currentSlot < bEndWithBuffer && slotEndWithBuffer > bStart;
-                });
-                if (!conflict) {
-                  slots.push(currentSlot);
-                }
-              }
+    for (const shift of shiftsToCheck) {
+      // Convert shift times for this specific date in the host's timezone to UTC
+      let currentSlot = fromZonedTime(`${dateStr}T${shift.startTime}:00`, hostTimezone);
+      const endLimit = fromZonedTime(`${dateStr}T${shift.endTime}:00`, hostTimezone);
+
+      while (isBefore(currentSlot, endLimit)) {
+        const slotEnd = addMinutes(currentSlot, event.duration);
+        if (isBefore(slotEnd, endLimit) || slotEnd.getTime() === endLimit.getTime()) {
+          if (!isBefore(currentSlot, now)) {
+            const conflict = event.bookings.some((b: any) => {
+              const existingBuffer = b.eventType?.bufferTime || 0;
+              const bStart = new Date(new Date(b.startTime).getTime() - existingBuffer * 60000);
+              const bEnd = new Date(new Date(b.endTime).getTime() + existingBuffer * 60000);
+              const reqStartWithBuffer = new Date(currentSlot.getTime() - (event.bufferTime || 0) * 60000);
+              const reqEndWithBuffer = new Date(slotEnd.getTime() + (event.bufferTime || 0) * 60000);
+              return reqStartWithBuffer < bEnd && reqEndWithBuffer > bStart;
+            });
+            if (!conflict) {
+              slots.push(currentSlot);
             }
           }
-          currentSlot = addMinutes(currentSlot, event.duration);
         }
+        currentSlot = addMinutes(currentSlot, event.duration);
       }
     }
+
     return slots.sort((a, b) => a.getTime() - b.getTime());
   };
 
@@ -126,12 +146,15 @@ export default function PublicBookingPage() {
     if (!event || !selectedTime) return;
     setSubmitting(true);
     try {
+      const zonedStartTime = selectedTime;
+      const zonedEndTime = addMinutes(selectedTime, event.duration);
       await api.post('/bookings', {
         eventTypeId: event.id,
         bookerName: name,
         bookerEmail: email,
-        startTime: selectedTime.toISOString(),
-        endTime: addMinutes(selectedTime, event.duration).toISOString()
+        startTime: zonedStartTime.toISOString(),
+        endTime: zonedEndTime.toISOString(),
+        customResponses
       });
       setSuccess(true);
     } catch (err: any) {
@@ -379,6 +402,29 @@ export default function PublicBookingPage() {
                       className="h-11 bg-transparent border-[#333] focus-visible:ring-1 focus-visible:ring-white rounded-md text-[14px] text-white"
                     />
                   </div>
+
+                  {event.customQuestions && event.customQuestions.map((q) => (
+                    <div key={q.id} className="space-y-2">
+                      <Label htmlFor={q.id} className="text-[14px] font-medium text-white">{q.label} {q.required && '*'}</Label>
+                      {q.type === 'textarea' ? (
+                        <textarea
+                          id={q.id}
+                          required={q.required}
+                          value={customResponses[q.id] || ''}
+                          onChange={e => setCustomResponses({...customResponses, [q.id]: e.target.value})}
+                          className="w-full min-h-[100px] bg-transparent border border-[#333] focus-visible:ring-1 focus-visible:ring-white rounded-md text-[14px] text-white p-3 custom-scrollbar"
+                        />
+                      ) : (
+                        <Input
+                          id={q.id}
+                          required={q.required}
+                          value={customResponses[q.id] || ''}
+                          onChange={e => setCustomResponses({...customResponses, [q.id]: e.target.value})}
+                          className="h-11 bg-transparent border-[#333] focus-visible:ring-1 focus-visible:ring-white rounded-md text-[14px] text-white"
+                        />
+                      )}
+                    </div>
+                  ))}
                   
                   <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-end gap-4 mt-8">
                     <div className="flex gap-3">

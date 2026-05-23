@@ -1,5 +1,5 @@
 import prisma from '../utils/prisma';
-import { Booking } from '@prisma/client';
+import { Booking, BookingStatus } from '@prisma/client';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -34,7 +34,7 @@ export const createBooking = async (data: Omit<Booking, 'id' | 'status'>): Promi
   // 2. Fetch event type to get the host userId, and their availability
   const eventType = await prisma.eventType.findUnique({
     where: { id: data.eventTypeId },
-    include: { user: { include: { availability: true } } }
+    include: { user: { include: { availability: true, dateOverrides: true } } }
   });
 
   if (!eventType) {
@@ -49,22 +49,37 @@ export const createBooking = async (data: Omit<Booking, 'id' | 'status'>): Promi
   const zonedStart = toZonedTime(start, hostTimezone);
   const zonedEnd = toZonedTime(end, hostTimezone);
 
-  const dayOfWeek = zonedStart.getDay(); // 0 = Sunday
-  
-  const dayAvailability = host.availability.find(a => a.dayOfWeek === dayOfWeek);
-  
-  if (!dayAvailability) {
-    throw new Error('Host is not available on this day.');
-  }
-
-  const requestedStartStr = format(zonedStart, 'HH:mm');
-  const requestedEndStr = format(zonedEnd, 'HH:mm');
-  
   if (zonedStart.getDate() !== zonedEnd.getDate()) {
       throw new Error('Booking spans multiple days.');
   }
 
-  if (requestedStartStr < dayAvailability.startTime || requestedEndStr > dayAvailability.endTime) {
+  const requestedDateStr = format(zonedStart, 'yyyy-MM-dd');
+  const requestedStartStr = format(zonedStart, 'HH:mm');
+  const requestedEndStr = format(zonedEnd, 'HH:mm');
+  
+  const override = host.dateOverrides.find(o => format(toZonedTime(o.date, hostTimezone), 'yyyy-MM-dd') === requestedDateStr);
+  
+  let validShifts: { startTime: string, endTime: string }[] = [];
+
+  if (override) {
+    if (override.isDayOff) {
+      throw new Error('Host is not available on this date.');
+    }
+    validShifts = [{ startTime: override.startTime, endTime: override.endTime }];
+  } else {
+    const dayOfWeek = zonedStart.getDay(); // 0 = Sunday
+    validShifts = host.availability.filter(a => a.dayOfWeek === dayOfWeek);
+  }
+
+  if (validShifts.length === 0) {
+    throw new Error('Host is not available on this day.');
+  }
+
+  const isValidTime = validShifts.some(shift => {
+    return requestedStartStr >= shift.startTime && requestedEndStr <= shift.endTime;
+  });
+
+  if (!isValidTime) {
     throw new Error('Requested time is outside host availability.');
   }
   
@@ -75,17 +90,30 @@ export const createBooking = async (data: Omit<Booking, 'id' | 'status'>): Promi
 
   // 4. Concurrency & Double Booking Check across all host's events
   return prisma.$transaction(async (tx) => {
-    const existingBooking = await tx.booking.findFirst({
+    // Fetch all future accepted bookings to check against their buffer times
+    const existingBookings = await tx.booking.findMany({
       where: {
         eventType: { userId: host.id },
-        status: 'ACCEPTED',
-        startTime: { lt: end },
-        endTime: { gt: start },
-      }
+        status: BookingStatus.ACCEPTED,
+        endTime: { gt: new Date() } // Only care about bookings that haven't ended
+      },
+      include: { eventType: { select: { bufferTime: true } } }
     });
 
-    if (existingBooking) {
-      throw new Error('This time slot is already booked.');
+    const hasConflict = existingBookings.some(b => {
+      // Buffer times apply BEFORE and AFTER the actual meeting
+      const existingBuffer = b.eventType?.bufferTime || 0;
+      const bStartWithBuffer = new Date(b.startTime.getTime() - existingBuffer * 60000);
+      const bEndWithBuffer = new Date(b.endTime.getTime() + existingBuffer * 60000);
+      
+      const reqStartWithBuffer = new Date(start.getTime() - eventType.bufferTime * 60000);
+      const reqEndWithBuffer = new Date(end.getTime() + eventType.bufferTime * 60000);
+
+      return reqStartWithBuffer < bEndWithBuffer && reqEndWithBuffer > bStartWithBuffer;
+    });
+
+    if (hasConflict) {
+      throw new Error('This time slot is already booked or overlaps with a buffer time.');
     }
 
     return tx.booking.create({
@@ -95,6 +123,8 @@ export const createBooking = async (data: Omit<Booking, 'id' | 'status'>): Promi
         bookerEmail: data.bookerEmail,
         startTime: start,
         endTime: end,
+        status: BookingStatus.ACCEPTED,
+        customResponses: data.customResponses || {},
       }
     });
   }, {
@@ -110,6 +140,6 @@ export const createBooking = async (data: Omit<Booking, 'id' | 'status'>): Promi
 export const cancelBooking = async (id: string): Promise<Booking> => {
   return prisma.booking.update({
     where: { id },
-    data: { status: 'CANCELLED' }
+    data: { status: BookingStatus.CANCELLED }
   });
 };

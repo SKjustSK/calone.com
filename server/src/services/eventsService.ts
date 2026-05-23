@@ -1,5 +1,5 @@
 import prisma from '../utils/prisma';
-import { EventType } from '@prisma/client';
+import { EventType, Prisma, BookingStatus } from '@prisma/client';
 
 /**
  * Fetches all event types belonging to a specific user.
@@ -16,9 +16,16 @@ export const getEventsByUser = async (userId: string) => {
  */
 export const getPublicEventsByUsername = async (username: string) => {
   return prisma.eventType.findMany({
-    where: { user: { slug: username }, isArchived: false },
+    where: { user: { slug: username }, isArchived: false, isActive: true },
     include: { user: { select: { name: true, slug: true, email: true } } }
   });
+};
+
+/**
+ * Fetches a single event type by ID for the editor page.
+ */
+export const getEventById = async (id: string): Promise<EventType | null> => {
+  return prisma.eventType.findFirst({ where: { id, isArchived: false } });
 };
 
 /**
@@ -39,7 +46,8 @@ export const getEventBySlugAndUser = async (username: string, slug: string) => {
   const allUserBookings = await prisma.booking.findMany({
     where: {
       eventType: { userId: event.userId },
-      status: 'ACCEPTED'
+      status: BookingStatus.ACCEPTED,
+      endTime: { gt: new Date() } // Only future bookings needed for slot blocking
     },
     select: { startTime: true, endTime: true, status: true, eventType: { select: { bufferTime: true } } }
   });
@@ -55,7 +63,7 @@ export const getEventBySlugAndUser = async (username: string, slug: string) => {
  * @param data The payload containing title, description, duration, slug, and userId
  * @returns A promise resolving to the created EventType
  */
-export const createEvent = async (data: Omit<EventType, 'id'>): Promise<EventType> => {
+export const createEvent = async (data: Prisma.EventTypeUncheckedCreateInput): Promise<EventType> => {
   return prisma.eventType.create({ data });
 };
 
@@ -65,7 +73,7 @@ export const createEvent = async (data: Omit<EventType, 'id'>): Promise<EventTyp
  * @param data The partial payload of fields to update
  * @returns A promise resolving to the updated EventType
  */
-export const updateEvent = async (id: string, data: Partial<EventType>): Promise<EventType> => {
+export const updateEvent = async (id: string, data: Prisma.EventTypeUncheckedUpdateInput): Promise<EventType> => {
   return prisma.eventType.update({ where: { id }, data });
 };
 
